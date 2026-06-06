@@ -2,7 +2,7 @@ import requests
 import json
 import os
 
-# 1. Live Price Fetch karne ka function
+# Live Price Fetch karne ka function
 def get_live_price(symbol="BTCUSDT"):
     url = f"https://api.binance.com/api/v3/ticker/price?symbol={symbol}"
     try:
@@ -12,24 +12,36 @@ def get_live_price(symbol="BTCUSDT"):
         print(f"⚠️ Price fetch error: {e}")
         return None
 
-# 2. Wallet ki memory ko load aur save karne ke functions
 DATA_FILE = "wallet.json"
 
+# 🌟 CRASH-PROOF WALLET LOADER
 def load_wallet():
     if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as f:
-            return json.load(f)
-    # Shuruat mein virtual $1000 cash milenge
-    return {"balance": 1000.0, "crypto_held": 0.0, "buy_price": 0.0}
+        try:
+            with open(DATA_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            print("⚠️ Wallet file corrupt thi, reset kar rahe hain.")
+            
+    # Agar file nahi hai ya kharab hai, toh default create karo aur save karo
+    default_wallet = {"balance": 1000.0, "crypto_held": 0.0, "buy_price": 0.0}
+    save_wallet(default_wallet)
+    return default_wallet
 
+# 🌟 CRASH-PROOF WALLET SAVER
 def save_wallet(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=4)
+    try:
+        with open(DATA_FILE, "w") as f:
+            json.dump(data, f, indent=4)
+        print("💾 Wallet state securely saved on disk.")
+    except Exception as e:
+        print(f"❌ Wallet save error: {e}")
 
 def main():
     print("🤖 AUTO-PILOT CRYPTO TRADING BOT ACTIVE...")
     print("------------------------------------------")
     
+    # Wallet load hotay hi file automatic ban jaye gi
     wallet = load_wallet()
     current_price = get_live_price("BTCUSDT")
     
@@ -54,7 +66,7 @@ def main():
     # CASE 2: Agar hamare paas pehle se crypto hai, toh PROFIT check karo
     else:
         bought_at = wallet['buy_price']
-        # Profit target: 0.5% gain (Chota target taake jaldi profit book ho)
+        # Profit target: 0.5% gain
         target_price = bought_at * 1.005 
         
         print(f"📌 Entry Price: ${bought_at} | Target to Sell: ${target_price:.2f}")
@@ -62,12 +74,12 @@ def main():
         if current_price >= target_price:
             print("🔥 TARGET HIT! Selling for profit...")
             profit_cash = wallet['crypto_held'] * current_price
-            print(f"🏆 Profit Booked! Made: ${profit_cash - 1000.0 if profit_cash > 1000 else 5.0:.2f}")
             
             wallet['balance'] = profit_cash
             wallet['crypto_held'] = 0.0
             wallet['buy_price'] = 0.0
             save_wallet(wallet)
+            print(f"🏆 Profit Booked! New Balance: ${profit_cash:.2f}")
         else:
             print("⏳ Market abhi target tak nahi pohnchi. HODL (Wait) kar rahe hain...")
 
