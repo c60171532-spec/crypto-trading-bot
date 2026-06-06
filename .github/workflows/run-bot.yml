@@ -2,7 +2,11 @@ name: Run Crypto Trading Bot
 on:
   workflow_dispatch: # Button se chalanay ke liye
   schedule:
-    - cron: '*/30 * * * *' # Har 30 mins baad bot cloud par automatic chalay ga
+    - cron: '*/30 * * * *' # Har 30 mins baad automatic chalay ga
+
+# Wallet file update karne ke liye permissions dena zaroori hai
+permissions:
+  contents: write
 
 jobs:
   trade:
@@ -21,3 +25,12 @@ jobs:
 
       - name: Execute Live Simulation Bot
         run: python bot.py
+
+      # 🌟 GIT MEMORY FIX: Yeh step wallet.json ko permanent repository mein save kar dega
+      - name: Save Wallet Progress
+        run: |
+          git config --global user.name "GitHub Action Bot"
+          git config --global user.email "actions@github.com"
+          git add wallet.json || true
+          git commit -m "🤖 Auto-Update: Wallet states and trade logs updated" || true
+          git push || true
